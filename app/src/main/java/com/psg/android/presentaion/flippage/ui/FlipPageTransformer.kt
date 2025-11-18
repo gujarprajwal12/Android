@@ -6,7 +6,6 @@ class FlipPageTransformer : ViewPager2.PageTransformer {
     override fun transformPage(page: View, position: Float) {
         page.cameraDistance = 20000f
 
-
         when {
             position <= -1f || position >= 1f -> {
                 page.alpha = 0f

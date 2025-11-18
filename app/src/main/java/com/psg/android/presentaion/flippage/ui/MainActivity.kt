@@ -36,7 +36,6 @@ class MainActivity : AppCompatActivity() {
             "https://gujarprajwal12.github.io/Android-Dev-Portfolio-Animated/",
             "https://developer.android.com/about",
             "https://www.github.com/"
-
         ))
 
 
