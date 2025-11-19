@@ -9,7 +9,9 @@ import androidx.core.view.WindowInsetsCompat
 import com.psg.android.R
 import com.psg.android.databinding.ActivitySwitchBinding
 import com.psg.android.presentaion.book.BookActivity
+import com.psg.android.presentaion.dymaic.DyamicActivity
 import com.psg.android.presentaion.flippage.ui.MainActivity
+import com.psg.android.presentaion.page.StaticActivity
 
 class SwitchActivity : AppCompatActivity() {
 
@@ -36,5 +38,14 @@ class SwitchActivity : AppCompatActivity() {
         binding.btnbook.setOnClickListener {
             startActivity(Intent(this, BookActivity::class.java))
         }
+
+        binding.btnonepage.setOnClickListener {
+            startActivity(Intent(this, StaticActivity::class.java))
+        }
+
+        binding.btns.setOnClickListener {
+            startActivity(Intent(this, DyamicActivity::class.java))
+        }
+
     }
 }
