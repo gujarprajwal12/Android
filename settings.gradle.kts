@@ -18,7 +18,7 @@ dependencyResolutionManagement {
         mavenCentral()
 
         maven { url = uri("https://www.jitpack.io" ) }
-
+        jcenter()
 
 
     }
@@ -26,3 +26,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Android"
 include(":app")
+
+
