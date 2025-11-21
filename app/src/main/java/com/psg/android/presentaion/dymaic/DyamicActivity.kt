@@ -12,6 +12,7 @@ import com.psg.android.R
 import com.psg.android.databinding.ActivityDyamicBinding
 
 import android.graphics.Canvas
+import android.view.View
 
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -19,7 +20,6 @@ class DyamicActivity : AppCompatActivity() {
 
 
     private lateinit var binding: ActivityDyamicBinding
-
     private lateinit var webView: WebView
     private lateinit var pageCurlView: PageCurlView
 
@@ -35,58 +35,65 @@ class DyamicActivity : AppCompatActivity() {
             insets
         }
 
+        webView = binding.hiddenWebView
+        pageCurlView = binding.pageCurlView
 
-        webView = findViewById(R.id.hiddenWebView)
-        pageCurlView = findViewById(R.id.pageCurlView)
-
-        setupWebView()
+        initWebView()
         loadWebsite("https://en.wikipedia.org/wiki/Android_(operating_system)")
-
-
     }
 
-        private fun setupWebView() {
-            webView.settings.javaScriptEnabled = true
-            webView.settings.loadWithOverviewMode = true
-            webView.settings.useWideViewPort = true
-        }
+    private fun initWebView() {
+        webView.settings.javaScriptEnabled = true
+        webView.settings.useWideViewPort = true
+        webView.settings.loadWithOverviewMode = true
+    }
 
-        private fun loadWebsite(url: String) {
-            webView.webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView, url: String?) {
-                    super.onPageFinished(view, url)
+    private fun loadWebsite(url: String) {
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String?) {
+                super.onPageFinished(view, url)
 
-                    webView.post {
-                        val pages = splitWebViewIntoPages(webView)
-                        pageCurlView.setPages(pages)
-                    }
-                }
+                webView.postDelayed({
+                    generatePages()
+                }, 600) // Delay ensures content fully rendered
             }
-            webView.loadUrl(url)
+        }
+        webView.loadUrl(url)
+    }
+
+    private fun generatePages() {
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(webView.width, View.MeasureSpec.EXACTLY)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+
+        webView.measure(widthSpec, heightSpec)
+        webView.layout(0, 0, webView.measuredWidth, webView.measuredHeight)
+
+        val totalHeight = webView.measuredHeight
+        val width = webView.measuredWidth
+        val pageHeight = pageCurlView.height
+
+        if (width == 0 || totalHeight == 0 || pageHeight == 0) return
+
+        val pages = mutableListOf<Bitmap>()
+        var yOffset = 0
+
+        while (yOffset < totalHeight) {
+            val height = minOf(pageHeight, totalHeight - yOffset)
+
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+
+            canvas.save()
+            canvas.translate(0f, -yOffset.toFloat())
+            webView.draw(canvas)
+            canvas.restore()
+
+            pages.add(bitmap)
+            yOffset += height
         }
 
-        private fun splitWebViewIntoPages(webView: WebView): List<Bitmap> {
+        pageCurlView.setPages(pages)
+    }
 
-            val width = webView.measuredWidth
-            val totalHeight = (webView.contentHeight * webView.scale).toInt()
 
-            val pageHeight = webView.height
-
-            val pages = mutableListOf<Bitmap>()
-
-            var currentY = 0
-
-            while (currentY < totalHeight) {
-                val bitmap = Bitmap.createBitmap(width, pageHeight, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(bitmap)
-
-                canvas.translate(0f, -currentY.toFloat())
-                webView.draw(canvas)
-
-                pages.add(bitmap)
-                currentY += pageHeight
-            }
-
-            return pages
-        }
     }

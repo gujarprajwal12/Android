@@ -1,7 +1,5 @@
 package com.psg.android.presentaion.dymaic
 
-
-
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
@@ -14,22 +12,14 @@ class PageCurlView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    private val frontPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val backPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.LTGRAY
     }
     private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    // Paths
-    private val frontPath = Path()
-    private val foldPath = Path()
-    private val backPath = Path()
-
-    // Page list
     private var pages: List<Bitmap> = emptyList()
     private var currentPage = 0
 
-    // Touch
     private var touchX = 0f
     private var touchY = 0f
     private var isCurling = false
@@ -38,6 +28,20 @@ class PageCurlView @JvmOverloads constructor(
         pages = bitmaps
         currentPage = 0
         invalidate()
+    }
+
+    fun nextPage() {
+        if (currentPage < pages.size - 1) {
+            currentPage++
+            invalidate()
+        }
+    }
+
+    fun previousPage() {
+        if (currentPage > 0) {
+            currentPage--
+            invalidate()
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -55,30 +59,69 @@ class PageCurlView @JvmOverloads constructor(
                 touchY = event.y
                 invalidate()
             }
-
+//
+//            MotionEvent.ACTION_UP -> {
+//                isCurling = false
+//
+//                if (touchX < width / 3 && currentPage < pages.size - 1) {
+//                    nextPage()
+//                } else if (touchX > width * 2 / 3 && currentPage > 0) {
+//                    previousPage()
+//                }
+//
+//                touchX = width.toFloat()
+//                touchY = height.toFloat()
+//                invalidate()
+//            }
             MotionEvent.ACTION_UP -> {
                 isCurling = false
 
-                // go to next page if drag is big
-                if (touchX < width / 2 && currentPage < pages.size - 1) {
+                if (touchX < width / 3 && currentPage < pages.size - 1) {
                     currentPage++
                 }
 
-                touchX = width.toFloat()
-                touchY = height.toFloat()
+                touchX = width.toFloat() - 10
+                touchY = height.toFloat() - 10
 
                 invalidate()
             }
+
         }
         return true
     }
+
+//    override fun onDraw(canvas: Canvas) {
+//        super.onDraw(canvas)
+//
+//        if (pages.isEmpty()) return
+//
+//        canvas.drawBitmap(
+//            pages[currentPage],
+//            null,
+//            Rect(0, 0, width, height),
+//            null
+//        )
+//
+//        if (isCurling) drawCurl(canvas)
+//    }
+
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         if (pages.isEmpty()) return
 
-        // Draw current page
+        // Draw NEXT page first (under front page)
+        if (currentPage < pages.size - 1) {
+            canvas.drawBitmap(
+                pages[currentPage + 1],
+                null,
+                Rect(0, 0, width, height),
+                null
+            )
+        }
+
+        // Draw current page on top
         canvas.drawBitmap(
             pages[currentPage],
             null,
@@ -89,48 +132,45 @@ class PageCurlView @JvmOverloads constructor(
         if (isCurling) drawCurl(canvas)
     }
 
+
     private fun drawCurl(canvas: Canvas) {
-        val dx = width - touchX
-        val dy = height - touchY
-        val radius = hypot(dx, dy) / 2
 
-        // FRONT PATH
-        frontPath.reset()
-        frontPath.addRect(0f, 0f, touchX, height.toFloat(), Path.Direction.CW)
+        val curlX = touchX.coerceIn(0f, width.toFloat())
+        val foldFactor = (width - curlX) / width
+        val foldWidth = foldFactor * width / 2f
 
-        // DRAW front remaining bitmap
+        val frontRect = RectF(0f, 0f, curlX, height.toFloat())
+        val backRect = RectF(curlX, 0f, width.toFloat(), height.toFloat())
+
         canvas.save()
-        canvas.clipPath(frontPath)
+        canvas.clipRect(frontRect)
         canvas.drawBitmap(pages[currentPage], null, Rect(0, 0, width, height), null)
         canvas.restore()
 
-        // FOLD PATH
-        foldPath.reset()
-        foldPath.moveTo(touchX, touchY)
-        foldPath.quadTo(
-            touchX + radius, touchY - radius,
-            width.toFloat(), 0f
-        )
-        foldPath.lineTo(width.toFloat(), height.toFloat())
-        foldPath.close()
+        if (currentPage < pages.size - 1) {
+            canvas.save()
+            canvas.clipRect(backRect)
 
-        // BACK PAGE (simple color)
-        backPath.reset()
-        backPath.set(foldPath)
+            val matrix = Matrix().apply {
+                setScale(-1f, 1f, curlX, height / 2f)
+            }
 
-        canvas.save()
-        canvas.clipPath(backPath)
-        canvas.drawColor(Color.LTGRAY)
-        canvas.restore()
+            canvas.drawBitmap(pages[currentPage], matrix, backPaint)
+            canvas.restore()
+        }
 
-        // SHADOW
-        shadowPaint.shader = LinearGradient(
-            touchX, touchY,
-            touchX + radius, touchY,
+        val gradient = LinearGradient(
+            curlX - foldWidth, 0f,
+            curlX, 0f,
             Color.BLACK, Color.TRANSPARENT,
             Shader.TileMode.CLAMP
         )
+        shadowPaint.shader = gradient
 
-        canvas.drawPath(foldPath, shadowPaint)
+        canvas.drawRect(
+            curlX - foldWidth, 0f,
+            curlX, height.toFloat(),
+            shadowPaint
+        )
     }
 }
